@@ -1,0 +1,8 @@
+[Unit]
+Description=DynDNS Updater
+
+[Service]
+Type=oneshot
+ExecStart=/etc/dyndns/dyndns-update
+PrivateTmp=true
+

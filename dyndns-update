@@ -1,0 +1,41 @@
+#!/bin/bash
+
+config_file="/etc/dyndns/sites.conf"
+
+function main() {
+    while IFS=, read -r subdomain domain password; do
+        update_dyndns ${subdomain} ${domain} ${password}
+    done < ${config_file}
+}
+
+function update_dyndns() {
+    subdomain=$1
+    domain=$2
+    password=$3
+
+    if [ "${subdomain}" = "@" ]; then
+        host="${domain}"
+    else
+        host="${subdomain}.${domain}"
+    fi
+
+    old_ip=$(resolve ${host})
+    new_ip=$(resolve myip.opendns.com)
+
+    if [ "${new_ip}" != "${old_ip}" ]; then
+        if curl -s "https://dynamicdns.park-your-domain.com/update?host=${subdomain}&domain=${domain}&password=${password}" | grep -q "<ErrCount>0</ErrCount>"; then
+            echo "[${host}] Dynamic DNS record updated (${old_ip} -> ${new_ip})"
+        else
+            echo "[${host}] Dynamic DNS record update FAILED (${old_ip} -> ${new_ip})"
+        fi
+    else
+	echo "[${host}] Dynamic DNS record update skipped (${old_ip} == ${new_ip})"
+    fi
+}
+
+function resolve() {
+    dig "$1" @resolver1.opendns.com +short 2>/dev/null
+}
+
+main $@
+
